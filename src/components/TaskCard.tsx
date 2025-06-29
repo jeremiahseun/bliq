@@ -121,25 +121,13 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, onPushToG
               
               {task.sourceId && task.source === 'github' && (
                 <a
-                  href={`https://github.com/${task.tags[0]}/issues/${task.sourceId}`}
+                  href={`https://github.com/issues/${task.sourceId}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   <ExternalLink className="w-4 h-4" />
                   View on GitHub
-                </a>
-              )}
-              
-              {task.sourceId && task.source === 'trello' && (
-                <a
-                  href={`https://trello.com/c/${task.sourceId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 w-full px-4 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  View on Trello
                 </a>
               )}
               

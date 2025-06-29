@@ -61,22 +61,10 @@ const Dashboard: React.FC = () => {
   };
 
   const handlePushToGitHub = async (task: any) => {
-    // Get GitHub integration
-    const githubIntegration = await dataService.getIntegration(user!.id, 'github');
-    if (!githubIntegration?.selectedRepos || githubIntegration.selectedRepos.length === 0) {
-      alert('Please connect GitHub and select repositories first');
-      return;
-    }
-
-    // For demo, use the first selected repository
-    const repo = githubIntegration.selectedRepos[0];
-    try {
-      await dataService.pushTaskToGitHub(task, githubIntegration.token, repo.owner, repo.name);
-      alert(`Task pushed to ${repo.full_name} successfully!`);
-    } catch (error) {
-      console.error('Error pushing to GitHub:', error);
-      alert('Failed to push task to GitHub. Please check your permissions.');
-    }
+    // In a real app, you'd have a modal to select repo
+    console.log('Push to GitHub:', task);
+    // For demo, just update to github source
+    await updateTask(task.id, { source: 'github' });
   };
 
   const tasksByStatus = {

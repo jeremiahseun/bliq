@@ -23,30 +23,7 @@ export interface Integration {
   refreshToken?: string;
   expiresAt?: string;
   metadata: any;
-  selectedRepos?: Array<{ owner: string; name: string; id: number; full_name: string; }>;
   createdAt: string;
-}
-
-export interface GitHubRepo {
-  id: number;
-  name: string;
-  full_name: string;
-  owner: {
-    login: string;
-    avatar_url: string;
-  };
-  description: string;
-  html_url: string;
-  private: boolean;
-  open_issues_count: number;
-}
-
-export interface TrelloBoard {
-  id: string;
-  name: string;
-  desc: string;
-  url: string;
-  closed: boolean;
 }
 
 class DataService {
@@ -74,13 +51,9 @@ class DataService {
     await dbService.addIntegration(integration);
   }
 
-  async updateIntegration(id: string, updates: Partial<Integration>): Promise<void> {
-    await dbService.updateIntegration(id, updates);
-  }
-
-  async fetchGitHubRepositories(token: string): Promise<GitHubRepo[]> {
+  async syncWithGitHub(userId: string, token: string): Promise<void> {
     try {
-      const response = await fetch('https://api.github.com/user/repos?sort=updated&per_page=100', {
+      const response = await fetch('https://api.github.com/issues?filter=assigned&state=open', {
         headers: {
           'Authorization': `token ${token}`,
           'Accept': 'application/vnd.github.v3+json',
@@ -88,118 +61,32 @@ class DataService {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch GitHub repositories');
+        throw new Error('Failed to fetch GitHub issues');
       }
 
-      const repos = await response.json();
-      return repos.map((repo: any) => ({
-        id: repo.id,
-        name: repo.name,
-        full_name: repo.full_name,
-        owner: {
-          login: repo.owner.login,
-          avatar_url: repo.owner.avatar_url,
-        },
-        description: repo.description || '',
-        html_url: repo.html_url,
-        private: repo.private,
-        open_issues_count: repo.open_issues_count,
-      }));
-    } catch (error) {
-      console.error('GitHub repositories fetch error:', error);
-      throw error;
-    }
-  }
-
-  async fetchTrelloBoards(token: string): Promise<TrelloBoard[]> {
-    try {
-      const response = await fetch(`https://api.trello.com/1/members/me/boards?key=${import.meta.env.VITE_TRELLO_API_KEY}&token=${token}`);
+      const issues = await response.json();
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch Trello boards');
-      }
-
-      const boards = await response.json();
-      return boards.map((board: any) => ({
-        id: board.id,
-        name: board.name,
-        desc: board.desc || '',
-        url: board.url,
-        closed: board.closed,
-      }));
-    } catch (error) {
-      console.error('Trello boards fetch error:', error);
-      throw error;
-    }
-  }
-
-  async syncWithGitHub(userId: string, token: string): Promise<void> {
-    try {
-      const integration = await this.getIntegration(userId, 'github');
-      if (!integration?.selectedRepos || integration.selectedRepos.length === 0) {
-        console.log('No repositories selected for GitHub sync');
-        return;
-      }
-
-      const existingTasks = await this.getTasks(userId);
-      
-      for (const repo of integration.selectedRepos) {
-        try {
-          const response = await fetch(`https://api.github.com/repos/${repo.owner}/${repo.name}/issues?state=open&per_page=100`, {
-            headers: {
-              'Authorization': `token ${token}`,
-              'Accept': 'application/vnd.github.v3+json',
-            },
-          });
-
-          if (!response.ok) {
-            console.error(`Failed to fetch issues for ${repo.full_name}`);
-            continue;
-          }
-
-          const issues = await response.json();
+      for (const issue of issues) {
+        const existingTasks = await this.getTasks(userId);
+        const existingTask = existingTasks.find(t => t.sourceId === issue.id.toString() && t.source === 'github');
+        
+        if (!existingTask) {
+          const task: Task = {
+            id: crypto.randomUUID(),
+            userId,
+            title: issue.title,
+            description: issue.body || '',
+            status: 'todo',
+            priority: issue.labels.some((l: any) => l.name.includes('high')) ? 'high' : 'medium',
+            source: 'github',
+            sourceId: issue.id.toString(),
+            isMarkdown: true,
+            tags: issue.labels.map((l: any) => l.name),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
           
-          for (const issue of issues) {
-            // Skip pull requests (they appear as issues in GitHub API)
-            if (issue.pull_request) continue;
-            
-            const existingTask = existingTasks.find(t => 
-              t.sourceId === issue.id.toString() && 
-              t.source === 'github'
-            );
-            
-            if (!existingTask) {
-              const task: Task = {
-                id: crypto.randomUUID(),
-                userId,
-                title: `[${repo.name}] ${issue.title}`,
-                description: issue.body || '',
-                status: 'todo',
-                priority: issue.labels.some((l: any) => 
-                  l.name.toLowerCase().includes('high') || 
-                  l.name.toLowerCase().includes('urgent') ||
-                  l.name.toLowerCase().includes('critical')
-                ) ? 'high' : 
-                issue.labels.some((l: any) => 
-                  l.name.toLowerCase().includes('low') ||
-                  l.name.toLowerCase().includes('minor')
-                ) ? 'low' : 'medium',
-                source: 'github',
-                sourceId: issue.id.toString(),
-                isMarkdown: true,
-                tags: [
-                  repo.name,
-                  ...issue.labels.map((l: any) => l.name)
-                ],
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              };
-              
-              await this.addTask(task);
-            }
-          }
-        } catch (repoError) {
-          console.error(`Error syncing repository ${repo.full_name}:`, repoError);
+          await this.addTask(task);
         }
       }
     } catch (error) {
@@ -210,55 +97,45 @@ class DataService {
 
   async syncWithTrello(userId: string, token: string): Promise<void> {
     try {
-      const integration = await this.getIntegration(userId, 'trello');
-      if (!integration?.selectedRepos || integration.selectedRepos.length === 0) {
-        console.log('No boards selected for Trello sync');
-        return;
+      // Get user's boards
+      const boardsResponse = await fetch(`https://api.trello.com/1/members/me/boards?key=${process.env.TRELLO_API_KEY}&token=${token}`);
+      
+      if (!boardsResponse.ok) {
+        throw new Error('Failed to fetch Trello boards');
       }
 
-      const existingTasks = await this.getTasks(userId);
+      const boards = await boardsResponse.json();
       
-      for (const board of integration.selectedRepos) {
-        try {
-          const cardsResponse = await fetch(`https://api.trello.com/1/boards/${board.id}/cards?key=${import.meta.env.VITE_TRELLO_API_KEY}&token=${token}`);
+      for (const board of boards) {
+        // Get cards from board
+        const cardsResponse = await fetch(`https://api.trello.com/1/boards/${board.id}/cards?key=${process.env.TRELLO_API_KEY}&token=${token}`);
+        
+        if (!cardsResponse.ok) continue;
+        
+        const cards = await cardsResponse.json();
+        
+        for (const card of cards) {
+          const existingTasks = await this.getTasks(userId);
+          const existingTask = existingTasks.find(t => t.sourceId === card.id && t.source === 'trello');
           
-          if (!cardsResponse.ok) {
-            console.error(`Failed to fetch cards for board ${board.name}`);
-            continue;
-          }
-          
-          const cards = await cardsResponse.json();
-          
-          for (const card of cards) {
-            const existingTask = existingTasks.find(t => 
-              t.sourceId === card.id && 
-              t.source === 'trello'
-            );
+          if (!existingTask) {
+            const task: Task = {
+              id: crypto.randomUUID(),
+              userId,
+              title: card.name,
+              description: card.desc || '',
+              status: card.closed ? 'done' : 'todo',
+              priority: 'medium',
+              source: 'trello',
+              sourceId: card.id,
+              isMarkdown: false,
+              tags: card.labels.map((l: any) => l.name).filter(Boolean),
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
             
-            if (!existingTask) {
-              const task: Task = {
-                id: crypto.randomUUID(),
-                userId,
-                title: `[${board.name}] ${card.name}`,
-                description: card.desc || '',
-                status: card.closed ? 'done' : 'todo',
-                priority: 'medium',
-                source: 'trello',
-                sourceId: card.id,
-                isMarkdown: false,
-                tags: [
-                  board.name,
-                  ...card.labels.map((l: any) => l.name).filter(Boolean)
-                ],
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              };
-              
-              await this.addTask(task);
-            }
+            await this.addTask(task);
           }
-        } catch (boardError) {
-          console.error(`Error syncing board ${board.name}:`, boardError);
         }
       }
     } catch (error) {
