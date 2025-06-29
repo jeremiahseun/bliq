@@ -1,5 +1,14 @@
 import { dbService } from './dbService';
 
+export interface Comment {
+  id: string;
+  author: string;
+  body: string;
+  createdAt: string;
+  source?: 'local' | 'github' | 'trello';
+  sourceId?: string;
+}
+
 export interface Task {
   id: string;
   userId: string;
@@ -11,6 +20,7 @@ export interface Task {
   sourceId?: string;
   isMarkdown: boolean;
   tags: string[];
+  comments: Comment[];
   createdAt: string;
   updatedAt: string;
 }

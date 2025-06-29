@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Search, Filter, List, Grid3X3, Settings, LogOut, Github, Trello, Sun, Moon, Wifi, WifiOff, FolderSync as Sync } from 'lucide-react';
 import Logo from '../components/Logo';
 import TaskCard from '../components/TaskCard';
+import TaskDetailModal from '../components/TaskDetailModal';
 import IntegrationModal from '../components/IntegrationModal';
 import GitHubRepoSelectionModal from '../components/GitHubRepoSelectionModal';
 import { useAuth } from '../context/AuthContext';
@@ -19,6 +20,8 @@ const Dashboard: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showGitHubRepos, setShowGitHubRepos] = useState(false);
   const [isSync, setIsSync] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [showTaskDetail, setShowTaskDetail] = useState(false);
   const [githubToken, setGithubToken] = useState('');
   const [integrationStatus, setIntegrationStatus] = useState<{
     github: { connected: boolean; repoCount?: number };
@@ -77,6 +80,19 @@ const Dashboard: React.FC = () => {
     setIsSync(false);
   };
 
+  const handleViewTaskDetails = (task: Task) => {
+    setSelectedTask(task);
+    setShowTaskDetail(true);
+  };
+
+  const handleUpdateTaskFromModal = async (id: string, updates: Partial<Task>) => {
+    await updateTask(id, updates);
+    // Update the selected task if it's the one being updated
+    if (selectedTask && selectedTask.id === id) {
+      setSelectedTask({ ...selectedTask, ...updates });
+    }
+  };
+
   const handlePushToGitHub = async (task: any) => {
     // In a real app, you'd have a modal to select repo
     console.log('Push to GitHub:', task);
@@ -127,6 +143,38 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+      {/* Sync Loader Overlay */}
+      <AnimatePresence>
+        {isSync && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-white dark:bg-gray-800 rounded-xl p-8 max-w-sm w-full mx-4 text-center"
+            >
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <Sync className="w-8 h-8 text-primary-500 animate-spin" />
+                <div className="text-xl font-semibold text-gray-900 dark:text-white">
+                  Syncing Tasks
+                </div>
+              </div>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                Fetching your latest tasks from GitHub and Trello...
+              </p>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div className="bg-primary-500 h-2 rounded-full animate-pulse" style={{ width: '70%' }}></div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Top Bar */}
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
         <div className="px-6 py-4">
@@ -355,6 +403,7 @@ const Dashboard: React.FC = () => {
                     onUpdate={updateTask}
                     onDelete={deleteTask}
                     onPushToGitHub={handlePushToGitHub}
+                    onViewDetails={handleViewTaskDetails}
                   />
                 ))
               )}
@@ -378,6 +427,7 @@ const Dashboard: React.FC = () => {
                         onUpdate={updateTask}
                         onDelete={deleteTask}
                         onPushToGitHub={handlePushToGitHub}
+                        onViewDetails={handleViewTaskDetails}
                       />
                     ))}
                   </div>
@@ -487,6 +537,17 @@ const Dashboard: React.FC = () => {
           }}
         />
       )}
+
+      {/* Task Detail Modal */}
+      <TaskDetailModal
+        isOpen={showTaskDetail}
+        onClose={() => {
+          setShowTaskDetail(false);
+          setSelectedTask(null);
+        }}
+        task={selectedTask}
+        onUpdateTask={handleUpdateTaskFromModal}
+      />
 
       {/* GitHub Repository Selection Modal */}
       {showGitHubRepos && user && githubToken && (

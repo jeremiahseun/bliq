@@ -10,9 +10,10 @@ interface TaskCardProps {
   onUpdate: (id: string, updates: Partial<Task>) => void;
   onDelete: (id: string) => void;
   onPushToGitHub?: (task: Task) => void;
+  onViewDetails: (task: Task) => void;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, onPushToGitHub }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, onPushToGitHub, onViewDetails }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isMarkdownMode, setIsMarkdownMode] = useState(task.isMarkdown);
   const [editTitle, setEditTitle] = useState(task.title);
@@ -50,9 +51,10 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, onPushToG
   return (
     <motion.div
       layout
-      className="card p-6 hover:shadow-md transition-all duration-200"
+      className="card p-6 hover:shadow-md transition-all duration-200 cursor-pointer"
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
+      onClick={() => !isEditing && onViewDetails(task)}
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
@@ -88,13 +90,20 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, onPushToG
         <div className="relative">
           <button
             onClick={() => setShowMenu(!showMenu)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowMenu(!showMenu);
+            }}
             className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
           >
             <MoreVertical className="w-4 h-4" />
           </button>
           
           {showMenu && (
-            <div className="absolute right-0 top-10 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10">
+            <div 
+              className="absolute right-0 top-10 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
               <button
                 onClick={() => {
                   setIsEditing(true);
@@ -167,10 +176,22 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, onPushToG
               placeholder="Task description..."
             />
             <div className="flex gap-2">
-              <button onClick={handleSave} className="btn-primary text-sm">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSave();
+                }}
+                className="btn-primary text-sm"
+              >
                 Save
               </button>
-              <button onClick={handleCancel} className="btn-secondary text-sm">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCancel();
+                }}
+                className="btn-secondary text-sm"
+              >
                 Cancel
               </button>
             </div>

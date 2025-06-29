@@ -71,6 +71,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...taskData,
       id: crypto.randomUUID(),
       userId: user.id,
+      comments: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

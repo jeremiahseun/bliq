@@ -24,6 +24,14 @@ interface BliqDB extends DBSchema {
       sourceId?: string;
       isMarkdown: boolean;
       tags: string[];
+      comments: Array<{
+        id: string;
+        author: string;
+        body: string;
+        createdAt: string;
+        source?: 'local' | 'github' | 'trello';
+        sourceId?: string;
+      }>;
       createdAt: string;
       updatedAt: string;
     };
