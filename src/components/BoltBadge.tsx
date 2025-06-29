@@ -1,5 +1,4 @@
 import React from 'react';
-import { Zap, ExternalLink } from 'lucide-react';
 
 const BoltBadge: React.FC = () => {
   return (
@@ -8,14 +7,13 @@ const BoltBadge: React.FC = () => {
       target="_blank"
       rel="noopener noreferrer"
       className="fixed bottom-4 right-4 z-50 group"
-      aria-label="Built with Bolt.new"
+      aria-label="Powered by Bolt.new"
     >
-      <div className="flex items-center gap-2 bg-gradient-to-r from-primary-500 to-purple-600 text-white px-3 py-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 text-sm font-medium">
-        <Zap className="w-4 h-4" />
-        <span className="hidden sm:inline">Built with</span>
-        <span className="font-semibold">Bolt.new</span>
-        <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-      </div>
+      <img
+        src="/black_circle_360x360.png"
+        alt="Powered by Bolt.new"
+        className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 transition-all duration-300 hover:scale-110 hover:drop-shadow-lg cursor-pointer"
+      />
     </a>
   );
 };
