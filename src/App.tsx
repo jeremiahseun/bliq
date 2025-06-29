@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import BoltBadge from './components/BoltBadge';
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
                 } 
               />
             </Routes>
+            <BoltBadge />
           </DataProvider>
         </AuthProvider>
       </ThemeProvider>
