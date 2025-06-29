@@ -415,7 +415,72 @@ const Dashboard: React.FC = () => {
               <div className="animate-pulse text-gray-500 dark:text-gray-400">Loading tasks...</div>
             </div>
           ) : viewMode === 'list' ? (
-            <div className="space-y-4">
+            <div>
+              {/* Group by source if not filtering by specific status */}
+              {!['todo', 'in-progress', 'done'].includes(filterStatus) ? (
+                <div className="space-y-8">
+                  {['local', 'github', 'trello'].map(source => {
+                    const sourceTasks = filteredTasks.filter(task => task.source === source);
+                    if (sourceTasks.length === 0) return null;
+                    
+                    return (
+                      <div key={source} className="space-y-4">
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white capitalize flex items-center gap-2">
+                            {source === 'github' && <Github className="w-5 h-5" />}
+                            {source === 'trello' && <Trello className="w-5 h-5" />}
+                            {source === 'local' && <MessageCircle className="w-5 h-5" />}
+                            {source} Tasks
+                          </h3>
+                          <span className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded-full text-sm">
+                            {sourceTasks.length}
+                          </span>
+                        </div>
+                        <div className="space-y-3">
+                          {sourceTasks.map(task => (
+                            <TaskCard
+                              key={task.id}
+                              task={task}
+                              onUpdate={updateTask}
+                              onDelete={deleteTask}
+                              onPushToGitHub={handlePushToGitHub}
+                              onViewDetails={handleViewTaskDetails}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredTasks.length === 0 ? (
+                    <div className="text-center py-12">
+                      <p className="text-gray-500 dark:text-gray-400 mb-4">No tasks found</p>
+                      <button
+                        onClick={() => setShowAddTask(true)}
+                        className="btn-primary"
+                      >
+                        Create your first task
+                      </button>
+                    </div>
+                  ) : (
+                    filteredTasks.map(task => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        onUpdate={updateTask}
+                        onDelete={deleteTask}
+                        onPushToGitHub={handlePushToGitHub}
+                        onViewDetails={handleViewTaskDetails}
+                      />
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div>
               {filteredTasks.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-gray-500 dark:text-gray-400 mb-4">No tasks found</p>
@@ -426,21 +491,6 @@ const Dashboard: React.FC = () => {
                     Create your first task
                   </button>
                 </div>
-              ) : (
-                filteredTasks.map(task => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    onUpdate={updateTask}
-                    onDelete={deleteTask}
-                    onPushToGitHub={handlePushToGitHub}
-                    onViewDetails={handleViewTaskDetails}
-                  />
-                ))
-              )}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {(['todo', 'in-progress', 'done'] as const).map(status => (
                 <div 
                   key={status} 

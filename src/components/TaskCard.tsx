@@ -51,7 +51,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onUpdate, onDelete, onPushToG
   return (
     <motion.div
       layout
-      className="card p-6 hover:shadow-md transition-all duration-200 cursor-pointer"
+      className="card p-6 hover:shadow-md transition-all duration-200 cursor-pointer select-none"
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={() => !isEditing && onViewDetails(task)}
