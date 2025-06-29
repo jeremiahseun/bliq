@@ -71,4 +71,25 @@
   .md\:max-w-7xl {
     max-width: 100%;
   }
+  
+  /* Ensure kanban columns are properly sized */
+  .kanban-container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* Smooth scrolling for kanban boards */
+  .snap-x {
+    scroll-behavior: smooth;
+  }
+  
+  /* Hide scrollbar for kanban on mobile */
+  .overflow-x-auto::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .overflow-x-auto {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
