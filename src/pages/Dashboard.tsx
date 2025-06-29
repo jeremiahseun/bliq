@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Filter, List, Grid3X3, Settings, LogOut, Github, Trello, Sun, Moon, Wifi, WifiOff, FolderSync as Sync } from 'lucide-react';
+import { Plus, Search, Filter, List, Grid3X3, Settings, LogOut, Github, Trello, Sun, Moon, Wifi, WifiOff, FolderSync as Sync, MessageCircle } from 'lucide-react';
 import Logo from '../components/Logo';
 import TaskCard from '../components/TaskCard';
 import TaskDetailModal from '../components/TaskDetailModal';
@@ -9,7 +9,7 @@ import GitHubRepoSelectionModal from '../components/GitHubRepoSelectionModal';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useData } from '../context/DataContext';
-import { dataService } from '../services/dataService';
+import { dataService, type Task } from '../services/dataService';
 
 const Dashboard: React.FC = () => {
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
@@ -491,43 +491,48 @@ const Dashboard: React.FC = () => {
                     Create your first task
                   </button>
                 </div>
-              {(['todo', 'in-progress', 'done'] as const).map(status => (
-                <div 
-                  key={status} 
-                  className={`space-y-4 min-h-[400px] p-4 rounded-lg transition-colors ${
-                    draggedTask ? 'bg-gray-50 dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600' : ''
-                  }`}
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, status)}
-                >
-                  <h2 className="font-semibold text-gray-900 dark:text-white capitalize flex items-center gap-2">
-                    {status.replace('-', ' ')}
-                    <span className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded-full text-xs">
-                      {tasksByStatus[status].length}
-                    </span>
-                  </h2>
-                  
-                  <div className="space-y-3">
-                    {tasksByStatus[status].map(task => (
-                      <div
-                        key={task.id}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, task.id)}
-                        onDragEnd={handleDragEnd}
-                        className={`transition-opacity ${draggedTask === task.id ? 'opacity-50' : ''}`}
-                      >
-                        <TaskCard
-                          task={task}
-                          onUpdate={updateTask}
-                          onDelete={deleteTask}
-                          onPushToGitHub={handlePushToGitHub}
-                          onViewDetails={handleViewTaskDetails}
-                        />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {(['todo', 'in-progress', 'done'] as const).map(status => (
+                    <div 
+                      key={status} 
+                      className={`space-y-4 min-h-[400px] p-4 rounded-lg transition-colors ${
+                        draggedTask ? 'bg-gray-50 dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600' : ''
+                      }`}
+                      onDragOver={handleDragOver}
+                      onDrop={(e) => handleDrop(e, status)}
+                    >
+                      <h2 className="font-semibold text-gray-900 dark:text-white capitalize flex items-center gap-2">
+                        {status.replace('-', ' ')}
+                        <span className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded-full text-xs">
+                          {tasksByStatus[status].length}
+                        </span>
+                      </h2>
+                      
+                      <div className="space-y-3">
+                        {tasksByStatus[status].map(task => (
+                          <div
+                            key={task.id}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, task.id)}
+                            onDragEnd={handleDragEnd}
+                            className={`transition-opacity ${draggedTask === task.id ? 'opacity-50' : ''}`}
+                          >
+                            <TaskCard
+                              task={task}
+                              onUpdate={updateTask}
+                              onDelete={deleteTask}
+                              onPushToGitHub={handlePushToGitHub}
+                              onViewDetails={handleViewTaskDetails}
+                            />
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    </div>
+                  ))}
                   </div>
                 </div>
-              ))}
+              )}
             </div>
           )}
         </div>
