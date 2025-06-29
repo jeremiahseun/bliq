@@ -61,3 +61,14 @@
 .dark ::-webkit-scrollbar-thumb:hover {
   background: rgba(75, 85, 99, 0.8);
 }
+
+/* Prevent horizontal scroll on mobile */
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+  }
+  
+  .md\:max-w-7xl {
+    max-width: 100%;
+  }
+}
