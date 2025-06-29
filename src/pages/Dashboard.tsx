@@ -30,6 +30,7 @@ const Dashboard: React.FC = () => {
     github: { connected: false },
     trello: { connected: false },
   });
+  const [draggedTask, setDraggedTask] = useState<string | null>(null);
   
   // New task form
   const [newTask, setNewTask] = useState({
@@ -133,6 +134,36 @@ const Dashboard: React.FC = () => {
       setShowIntegration('github');
       setShowSettings(false);
     }
+  };
+
+  const handleDragStart = (e: React.DragEvent, taskId: string) => {
+    setDraggedTask(taskId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = async (e: React.DragEvent, newStatus: 'todo' | 'in-progress' | 'done') => {
+    e.preventDefault();
+    
+    if (!draggedTask) return;
+    
+    const task = tasks.find(t => t.id === draggedTask);
+    if (!task || task.status === newStatus) {
+      setDraggedTask(null);
+      return;
+    }
+
+    // Update task status locally
+    await updateTask(draggedTask, { status: newStatus });
+    setDraggedTask(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedTask(null);
   };
 
   const tasksByStatus = {
@@ -411,7 +442,14 @@ const Dashboard: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {(['todo', 'in-progress', 'done'] as const).map(status => (
-                <div key={status} className="space-y-4">
+                <div 
+                  key={status} 
+                  className={`space-y-4 min-h-[400px] p-4 rounded-lg transition-colors ${
+                    draggedTask ? 'bg-gray-50 dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600' : ''
+                  }`}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, status)}
+                >
                   <h2 className="font-semibold text-gray-900 dark:text-white capitalize flex items-center gap-2">
                     {status.replace('-', ' ')}
                     <span className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded-full text-xs">
@@ -421,14 +459,21 @@ const Dashboard: React.FC = () => {
                   
                   <div className="space-y-3">
                     {tasksByStatus[status].map(task => (
-                      <TaskCard
+                      <div
                         key={task.id}
-                        task={task}
-                        onUpdate={updateTask}
-                        onDelete={deleteTask}
-                        onPushToGitHub={handlePushToGitHub}
-                        onViewDetails={handleViewTaskDetails}
-                      />
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, task.id)}
+                        onDragEnd={handleDragEnd}
+                        className={`transition-opacity ${draggedTask === task.id ? 'opacity-50' : ''}`}
+                      >
+                        <TaskCard
+                          task={task}
+                          onUpdate={updateTask}
+                          onDelete={deleteTask}
+                          onPushToGitHub={handlePushToGitHub}
+                          onViewDetails={handleViewTaskDetails}
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>

@@ -81,6 +81,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateTask = async (id: string, updates: Partial<Task>) => {
+    const currentTask = tasks.find(task => task.id === id);
     const updatedTask = {
       ...updates,
       updatedAt: new Date().toISOString(),
@@ -91,6 +92,31 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     ));
 
     await dataService.updateTask(id, updatedTask);
+
+    // If status changed and task has external source, update the external service
+    if (currentTask && updates.status && currentTask.status !== updates.status) {
+      const fullUpdatedTask = { ...currentTask, ...updatedTask };
+      
+      if (fullUpdatedTask.source === 'github') {
+        try {
+          const integration = await dataService.getIntegration(user!.id, 'github');
+          if (integration?.token) {
+            await dataService.updateGitHubIssueStatus(fullUpdatedTask, integration.token, updates.status);
+          }
+        } catch (error) {
+          console.error('Failed to update GitHub issue:', error);
+        }
+      } else if (fullUpdatedTask.source === 'trello') {
+        try {
+          const integration = await dataService.getIntegration(user!.id, 'trello');
+          if (integration?.token) {
+            await dataService.addTrelloCardComment(fullUpdatedTask, integration.token, updates.status);
+          }
+        } catch (error) {
+          console.error('Failed to add Trello comment:', error);
+        }
+      }
+    }
   };
 
   const deleteTask = async (id: string) => {

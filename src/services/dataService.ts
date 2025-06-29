@@ -227,6 +227,105 @@ class DataService {
       throw error;
     }
   }
+
+  async updateGitHubIssueStatus(task: Task, token: string, newStatus: 'todo' | 'in-progress' | 'done'): Promise<void> {
+    if (!task.sourceId) return;
+
+    try {
+      const integration = await this.getIntegration(task.userId, 'github');
+      if (!integration?.connectedRepos) return;
+
+      // Find the repo this task belongs to
+      const repo = integration.connectedRepos.find(r => {
+        // For now, we'll use the first connected repo
+        // In a real app, we'd store repo info with each task
+        return true;
+      });
+
+      if (!repo) return;
+
+      // Update issue state and labels based on status
+      const state = newStatus === 'done' ? 'closed' : 'open';
+      const labels = task.tags.filter(tag => !['in-progress', 'todo', 'done'].includes(tag));
+      
+      if (newStatus === 'in-progress') {
+        labels.push('in-progress');
+      }
+
+      // Update the issue
+      const updateResponse = await fetch(`https://api.github.com/repos/${repo.owner}/${repo.name}/issues/${task.sourceId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `token ${token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          state,
+          labels,
+        }),
+      });
+
+      if (!updateResponse.ok) {
+        console.warn('Failed to update GitHub issue state');
+      }
+
+      // Add a comment about the status change
+      const statusMessage = {
+        'todo': 'moved back to Todo',
+        'in-progress': 'started working on this',
+        'done': 'completed this task',
+      }[newStatus];
+
+      const commentResponse = await fetch(`https://api.github.com/repos/${repo.owner}/${repo.name}/issues/${task.sourceId}/comments`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `token ${token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          body: `Status updated: ${statusMessage} 🔄`,
+        }),
+      });
+
+      if (!commentResponse.ok) {
+        console.warn('Failed to add comment to GitHub issue');
+      }
+    } catch (error) {
+      console.error('Error updating GitHub issue status:', error);
+    }
+  }
+
+  async addTrelloCardComment(task: Task, token: string, newStatus: 'todo' | 'in-progress' | 'done'): Promise<void> {
+    if (!task.sourceId) return;
+
+    try {
+      const statusMessage = {
+        'todo': 'moved back to Todo',
+        'in-progress': 'started working on this',
+        'done': 'completed this task',
+      }[newStatus];
+
+      const response = await fetch(`https://api.trello.com/1/cards/${task.sourceId}/actions/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: `Status updated: ${statusMessage} 🔄`,
+          key: import.meta.env.VITE_TRELLO_API_KEY,
+          token: token,
+        }),
+      });
+
+      if (!response.ok) {
+        console.warn('Failed to add comment to Trello card');
+      }
+    } catch (error) {
+      console.error('Error adding Trello card comment:', error);
+    }
+  }
 }
 
 export const dataService = new DataService();
