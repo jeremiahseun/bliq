@@ -130,6 +130,7 @@ class DataService {
               sourceId: issue.id.toString(),
               isMarkdown: true,
               tags: issue.labels.map((l: any) => l.name),
+              comments: [],
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             };
@@ -179,6 +180,7 @@ class DataService {
               sourceId: card.id,
               isMarkdown: false,
               tags: card.labels.map((l: any) => l.name).filter(Boolean),
+              comments: [],
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             };
