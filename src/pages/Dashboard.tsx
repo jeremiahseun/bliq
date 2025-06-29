@@ -494,7 +494,7 @@ const Dashboard: React.FC = () => {
 
         {/* Main Content */}
         <main className="flex-1 overflow-hidden flex flex-col pb-16 md:pb-0">
-          <div className="p-6 flex-1 overflow-y-auto">
+          <div className="p-4 md:p-6 flex-1 overflow-y-auto">
             <div className="max-w-7xl mx-auto">
               {/* Filters and Add Task */}
               <div className="flex items-center justify-between mb-8">
