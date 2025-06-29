@@ -18,6 +18,8 @@ const Dashboard: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'local' | 'github' | 'trello'>('all');
   const [collapsedSources, setCollapsedSources] = useState<Set<string>>(new Set());
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [isSearchActive, setIsSearchActive] = useState(false);
   const [showAddTask, setShowAddTask] = useState(false);
   const [showIntegration, setShowIntegration] = useState<'github' | 'trello' | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -247,27 +249,27 @@ const Dashboard: React.FC = () => {
 
       {/* Top Bar */}
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-4">
-                <Logo size="sm" />
-                
-                {/* Sidebar toggle button */}
-                <button
-                  onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                  className="hidden md:flex p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                  title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                >
-                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-                    {isSidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-                    <span className="hidden sm:inline text-sm">
-                      {isSidebarCollapsed ? 'Expand' : 'Menu'}
-                    </span>
-                  </div>
-                </button>
-              </div>
+        <div className="px-4 py-4">
+          {/* Desktop Header */}
+          <div className="hidden md:flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Logo size="sm" />
               
+              {/* Sidebar toggle button */}
+              <button
+                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              >
+                <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                  {isSidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+                  <span className="hidden lg:inline text-sm">
+                    {isSidebarCollapsed ? 'Expand' : 'Menu'}
+                  </span>
+                </div>
+              </button>
+              
+              {/* Desktop Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
@@ -275,23 +277,23 @@ const Dashboard: React.FC = () => {
                   placeholder="Search tasks..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-700 border-0 rounded-lg w-80 focus:ring-2 focus:ring-primary-500 focus:bg-white dark:focus:bg-gray-600 transition-colors text-gray-900 dark:text-white"
+                  className="pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-700 border-0 rounded-lg w-80 focus:ring-2 focus:ring-primary-500 focus:bg-white dark:focus:bg-gray-600 transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {/* Online/Offline indicator */}
-              <div className="flex items-center gap-2 text-sm text-gray-900 dark:text-white">
+              <div className="flex items-center gap-2 text-sm text-gray-900 dark:text-white px-2">
                 {isOnline ? (
                   <>
                     <Wifi className="w-4 h-4 text-green-500" />
-                    <span className="text-green-600 dark:text-green-400 hidden sm:inline">Online</span>
+                    <span className="text-green-600 dark:text-green-400 hidden lg:inline">Online</span>
                   </>
                 ) : (
                   <>
                     <WifiOff className="w-4 h-4 text-red-500" />
-                    <span className="text-red-600 dark:text-red-400 hidden sm:inline">Offline</span>
+                    <span className="text-red-600 dark:text-red-400 hidden lg:inline">Offline</span>
                   </>
                 )}
               </div>
@@ -304,7 +306,7 @@ const Dashboard: React.FC = () => {
                 title="Sync with integrations"
               >
                 <Sync className={`w-4 h-4 ${isSync ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline text-sm">Sync</span>
+                <span className="hidden lg:inline text-sm">Sync</span>
               </button>
 
               {/* View mode toggle */}
@@ -319,7 +321,7 @@ const Dashboard: React.FC = () => {
                   title="List view"
                 >
                   <List className="w-4 h-4" />
-                  <span className="hidden sm:inline text-sm">List</span>
+                  <span className="hidden lg:inline text-sm">List</span>
                 </button>
                 <button
                   onClick={() => setViewMode('kanban')}
@@ -331,7 +333,7 @@ const Dashboard: React.FC = () => {
                   title="Kanban view"
                 >
                   <Grid3X3 className="w-4 h-4" />
-                  <span className="hidden sm:inline text-sm">Board</span>
+                  <span className="hidden lg:inline text-sm">Board</span>
                 </button>
               </div>
 
@@ -342,7 +344,7 @@ const Dashboard: React.FC = () => {
                 title="Toggle theme"
               >
                 {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-                <span className="hidden sm:inline text-sm">
+                <span className="hidden lg:inline text-sm">
                   {theme === 'light' ? 'Dark' : 'Light'}
                 </span>
               </button>
@@ -354,12 +356,12 @@ const Dashboard: React.FC = () => {
                 title="Settings"
               >
                 <Settings className="w-4 h-4" />
-                <span className="hidden sm:inline text-sm">Settings</span>
+                <span className="hidden lg:inline text-sm">Settings</span>
               </button>
 
               {/* User menu */}
-              <div className="flex items-center gap-3">
-                <div className="text-right">
+              <div className="flex items-center gap-3 ml-2">
+                <div className="text-right hidden lg:block">
                   <p className="text-sm font-medium text-gray-900 dark:text-white">{user?.name}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
                 </div>
@@ -369,10 +371,55 @@ const Dashboard: React.FC = () => {
                   title="Sign out"
                 >
                   <LogOut className="w-4 h-4" />
-                  <span className="hidden sm:inline text-sm">Sign Out</span>
+                  <span className="hidden lg:inline text-sm">Sign Out</span>
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* Mobile Header */}
+          <div className="md:hidden">
+            {isSearchActive ? (
+              /* Mobile Search Mode */
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setIsSearchActive(false)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-600 dark:text-gray-300"
+                >
+                  <ChevronRight className="w-5 h-5 rotate-180" />
+                </button>
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="text"
+                    placeholder="Search tasks..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-700 border-0 rounded-lg focus:ring-2 focus:ring-primary-500 focus:bg-white dark:focus:bg-gray-600 transition-colors text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                    autoFocus
+                  />
+                </div>
+              </div>
+            ) : (
+              /* Mobile Default Mode */
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => setShowMobileMenu(true)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-600 dark:text-gray-300"
+                >
+                  <Menu className="w-5 h-5" />
+                </button>
+                
+                <Logo size="sm" />
+                
+                <button
+                  onClick={() => setIsSearchActive(true)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-600 dark:text-gray-300"
+                >
+                  <Search className="w-5 h-5" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -492,27 +539,227 @@ const Dashboard: React.FC = () => {
           </nav>
         </aside>
 
+        {/* Mobile Menu Overlay */}
+        <AnimatePresence>
+          {showMobileMenu && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden"
+              onClick={() => setShowMobileMenu(false)}
+            >
+              <motion.div
+                initial={{ x: -300 }}
+                animate={{ x: 0 }}
+                exit={{ x: -300 }}
+                transition={{ type: "tween", duration: 0.3 }}
+                className="bg-white dark:bg-gray-800 w-80 h-full p-6 overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Mobile Menu Header */}
+                <div className="flex items-center justify-between mb-8">
+                  <Logo size="sm" />
+                  <button
+                    onClick={() => setShowMobileMenu(false)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                  </button>
+                </div>
+
+                {/* User Info */}
+                <div className="mb-8 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <p className="font-medium text-gray-900 dark:text-white">{user?.name}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{user?.email}</p>
+                </div>
+
+                {/* Categories */}
+                <div className="mb-8">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Categories</h3>
+                  <div className="space-y-2">
+                    {sidebarCategories.map((category) => {
+                      const Icon = category.icon;
+                      const count = getCategoryCount(category.id);
+                      const isActive = selectedCategory === category.id;
+                      
+                      return (
+                        <button
+                          key={category.id}
+                          onClick={() => {
+                            setSelectedCategory(category.id as any);
+                            setShowMobileMenu(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
+                            isActive
+                              ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
+                              : 'hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Icon className="w-5 h-5" />
+                            <span className="font-medium">{category.name}</span>
+                          </div>
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            isActive
+                              ? 'bg-primary-100 dark:bg-primary-800 text-primary-700 dark:text-primary-300'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                          }`}>
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h3>
+                  
+                  {/* Online Status */}
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    {isOnline ? (
+                      <>
+                        <Wifi className="w-5 h-5 text-green-500" />
+                        <span className="text-green-600 dark:text-green-400 font-medium">Online</span>
+                      </>
+                    ) : (
+                      <>
+                        <WifiOff className="w-5 h-5 text-red-500" />
+                        <span className="text-red-600 dark:text-red-400 font-medium">Offline</span>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Sync */}
+                  <button
+                    onClick={() => {
+                      handleSync();
+                      setShowMobileMenu(false);
+                    }}
+                    disabled={!isOnline || isSync}
+                    className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50 text-gray-700 dark:text-gray-300"
+                  >
+                    <Sync className={`w-5 h-5 ${isSync ? 'animate-spin' : ''}`} />
+                    <span className="font-medium">Sync Tasks</span>
+                  </button>
+
+                  {/* View Mode */}
+                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">View Mode</span>
+                    </div>
+                    <div className="flex bg-white dark:bg-gray-600 rounded-lg p-1">
+                      <button
+                        onClick={() => {
+                          setViewMode('list');
+                          setShowMobileMenu(false);
+                        }}
+                        className={`flex-1 flex items-center justify-center gap-2 p-2 rounded transition-colors ${
+                          viewMode === 'list' 
+                            ? 'bg-primary-500 text-white shadow-sm' 
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-500'
+                        }`}
+                      >
+                        <List className="w-4 h-4" />
+                        <span className="text-sm font-medium">List</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setViewMode('kanban');
+                          setShowMobileMenu(false);
+                        }}
+                        className={`flex-1 flex items-center justify-center gap-2 p-2 rounded transition-colors ${
+                          viewMode === 'kanban' 
+                            ? 'bg-primary-500 text-white shadow-sm' 
+                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-500'
+                        }`}
+                      >
+                        <Grid3X3 className="w-4 h-4" />
+                        <span className="text-sm font-medium">Board</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Theme Toggle */}
+                  <button
+                    onClick={() => {
+                      toggleTheme();
+                      setShowMobileMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-700 dark:text-gray-300"
+                  >
+                    {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+                    <span className="font-medium">
+                      Switch to {theme === 'light' ? 'Dark' : 'Light'} Mode
+                    </span>
+                  </button>
+
+                  {/* Settings */}
+                  <button
+                    onClick={() => {
+                      setShowSettings(!showSettings);
+                      setShowMobileMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-700 dark:text-gray-300"
+                  >
+                    <Settings className="w-5 h-5" />
+                    <span className="font-medium">Settings</span>
+                  </button>
+
+                  {/* Add Task */}
+                  <button
+                    onClick={() => {
+                      setShowAddTask(true);
+                      setShowMobileMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 p-3 bg-primary-50 dark:bg-primary-900 hover:bg-primary-100 dark:hover:bg-primary-800 rounded-lg transition-colors text-primary-700 dark:text-primary-300"
+                  >
+                    <Plus className="w-5 h-5" />
+                    <span className="font-medium">Add New Task</span>
+                  </button>
+
+                  {/* Sign Out */}
+                  <button
+                    onClick={() => {
+                      logout();
+                      setShowMobileMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 p-3 hover:bg-red-50 dark:hover:bg-red-900 rounded-lg transition-colors text-red-600 dark:text-red-400"
+                  >
+                    <LogOut className="w-5 h-5" />
+                    <span className="font-medium">Sign Out</span>
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Main Content */}
-        <main className="flex-1 overflow-hidden flex flex-col pb-16 md:pb-0">
+        <main className="flex-1 overflow-hidden flex flex-col pb-16 md:pb-0 min-w-0">
           <div className="p-4 md:p-6 flex-1 overflow-y-auto">
-            <div className="max-w-7xl mx-auto">
+            <div className="w-full max-w-none md:max-w-7xl mx-auto">
               {/* Filters and Add Task */}
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
                   <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Tasks</h1>
                   
-                  <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value as any)}
-                    className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm text-gray-900 dark:text-white"
-                  >
-                    <option value="all">All Tasks</option>
-                    <option value="todo">To Do</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="done">Done</option>
-                  </select>
+                  <div className="hidden sm:block">
+                    <select
+                      value={filterStatus}
+                      onChange={(e) => setFilterStatus(e.target.value as any)}
+                      className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm text-gray-900 dark:text-white"
+                    >
+                      <option value="all">All Tasks</option>
+                      <option value="todo">To Do</option>
+                      <option value="in-progress">In Progress</option>
+                      <option value="done">Done</option>
+                    </select>
+                  </div>
                   
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                  <span className="text-sm text-gray-500 dark:text-gray-400 hidden sm:inline">
                     {filteredTasks.length} tasks
                   </span>
                 </div>
