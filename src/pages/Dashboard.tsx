@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Filter, List, Grid3X3, Settings, LogOut, Github, Trello, Sun, Moon, Wifi, WifiOff, FolderSync as Sync, MessageCircle, ChevronDown, ChevronRight, Home, Layers } from 'lucide-react';
+import { Plus, Search, Filter, List, Grid3X3, Settings, LogOut, Github, Trello, Sun, Moon, Wifi, WifiOff, FolderSync as Sync, MessageCircle, ChevronDown, ChevronRight, Home } from 'lucide-react';
 import Logo from '../components/Logo';
 import TaskCard from '../components/TaskCard';
 import TaskDetailModal from '../components/TaskDetailModal';
@@ -15,8 +15,6 @@ const Dashboard: React.FC = () => {
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'todo' | 'in-progress' | 'done'>('all');
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'local' | 'github' | 'trello'>('all');
-  const [collapsedSources, setCollapsedSources] = useState<Set<string>>(new Set());
   const [showAddTask, setShowAddTask] = useState(false);
   const [showIntegration, setShowIntegration] = useState<'github' | 'trello' | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -25,6 +23,8 @@ const Dashboard: React.FC = () => {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showTaskDetail, setShowTaskDetail] = useState(false);
   const [githubToken, setGithubToken] = useState('');
+  const [collapsedSources, setCollapsedSources] = useState<Set<string>>(new Set());
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'local' | 'github' | 'trello'>('all');
   const [integrationStatus, setIntegrationStatus] = useState<{
     github: { connected: boolean; repoCount?: number };
     trello: { connected: boolean };
@@ -59,16 +59,6 @@ const Dashboard: React.FC = () => {
     const matchesCategory = selectedCategory === 'all' || task.source === selectedCategory;
     return matchesSearch && matchesFilter && matchesCategory;
   });
-
-  const toggleSourceCollapse = (source: string) => {
-    const newCollapsed = new Set(collapsedSources);
-    if (newCollapsed.has(source)) {
-      newCollapsed.delete(source);
-    } else {
-      newCollapsed.add(source);
-    }
-    setCollapsedSources(newCollapsed);
-  };
 
   const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -179,39 +169,72 @@ const Dashboard: React.FC = () => {
     setDraggedTask(null);
   };
 
+  const toggleSourceCollapse = (source: string) => {
+    const newCollapsed = new Set(collapsedSources);
+    if (newCollapsed.has(source)) {
+      newCollapsed.delete(source);
+    } else {
+      newCollapsed.add(source);
+    }
+    setCollapsedSources(newCollapsed);
+  };
+
   const tasksByStatus = {
     todo: filteredTasks.filter(task => task.status === 'todo'),
     'in-progress': filteredTasks.filter(task => task.status === 'in-progress'),
     done: filteredTasks.filter(task => task.status === 'done'),
   };
 
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'github':
-        return <Github className="w-4 h-4" />;
-      case 'trello':
-        return <Trello className="w-4 h-4" />;
-      case 'local':
-        return <MessageCircle className="w-4 h-4" />;
-      default:
-        return <Home className="w-4 h-4" />;
-    }
-  };
-
-  const getCategoryCount = (category: string) => {
-    if (category === 'all') return tasks.length;
-    return tasks.filter(task => task.source === category).length;
-  };
-
-  const sidebarCategories = [
-    { id: 'all', name: 'All Tasks', icon: Home },
-    { id: 'local', name: 'Local', icon: MessageCircle },
-    { id: 'github', name: 'GitHub', icon: Github },
-    { id: 'trello', name: 'Trello', icon: Trello },
-  ];
-
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300 flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300 flex">
+      {/* Desktop Sidebar */}
+      <div className="hidden md:flex flex-col w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <Logo size="sm" />
+        </div>
+        
+        <nav className="flex-1 p-4">
+          <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+            Categories
+          </h3>
+          <div className="space-y-1">
+            {[
+              { id: 'all', label: 'All Tasks', icon: Home, count: tasks.length },
+              { id: 'local', label: 'Local', icon: MessageCircle, count: tasks.filter(t => t.source === 'local').length },
+              { id: 'github', label: 'GitHub', icon: Github, count: tasks.filter(t => t.source === 'github').length },
+              { id: 'trello', label: 'Trello', icon: Trello, count: tasks.filter(t => t.source === 'trello').length },
+            ].map((category) => {
+              const Icon = category.icon;
+              const isActive = selectedCategory === category.id;
+              
+              return (
+                <button
+                  key={category.id}
+                  onClick={() => setSelectedCategory(category.id as any)}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                    isActive
+                      ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="flex-1">{category.label}</span>
+                  <span className={`text-xs px-2 py-1 rounded-full ${
+                    isActive
+                      ? 'bg-primary-100 dark:bg-primary-800 text-primary-700 dark:text-primary-300'
+                      : 'bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-400'
+                  }`}>
+                    {category.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0">
       {/* Sync Loader Overlay */}
       <AnimatePresence>
         {isSync && (
@@ -245,11 +268,14 @@ const Dashboard: React.FC = () => {
       </AnimatePresence>
 
       {/* Top Bar */}
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
+        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <Logo size="sm" />
+            <div className="flex items-center gap-6 md:gap-6">
+              {/* Mobile Logo */}
+              <div className="md:hidden">
+                <Logo size="sm" />
+              </div>
               
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -414,179 +440,104 @@ const Dashboard: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Main Layout with Sidebar */}
-      <div className="flex flex-1">
-        {/* Sidebar - Desktop */}
-        <aside className="hidden md:flex w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-col">
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-              <Layers className="w-5 h-5" />
-              Categories
-            </h2>
-          </div>
-          
-          <nav className="flex-1 p-4">
-            <div className="space-y-2">
-              {sidebarCategories.map((category) => {
-                const Icon = category.icon;
-                const count = getCategoryCount(category.id);
-                const isActive = selectedCategory === category.id;
-                
-                return (
-                  <button
-                    key={category.id}
-                    onClick={() => setSelectedCategory(category.id as any)}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
-                      isActive
-                        ? 'bg-primary-50 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
-                        : 'hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon className="w-4 h-4" />
-                      <span className="font-medium">{category.name}</span>
-                    </div>
-                    <span className={`px-2 py-1 rounded-full text-xs ${
-                      isActive
-                        ? 'bg-primary-100 dark:bg-primary-800 text-primary-700 dark:text-primary-300'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                    }`}>
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
+      {/* Main Content */}
+        <main className="flex-1 p-6 pb-20 md:pb-6">
+        <div className="max-w-7xl mx-auto">
+          {/* Filters and Add Task */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Tasks</h1>
+              
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value as any)}
+                className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+              >
+                <option value="all">All Tasks</option>
+                <option value="todo">To Do</option>
+                <option value="in-progress">In Progress</option>
+                <option value="done">Done</option>
+              </select>
+              
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                {filteredTasks.length} tasks
+              </span>
             </div>
-          </nav>
-        </aside>
 
-        {/* Main Content */}
-        <main className="flex-1 overflow-hidden flex flex-col pb-16 md:pb-0">
-          <div className="p-6 flex-1 overflow-y-auto">
-            <div className="max-w-7xl mx-auto">
-              {/* Filters and Add Task */}
-              <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-4">
-                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Tasks</h1>
-                  
-                  <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value as any)}
-                    className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
-                  >
-                    <option value="all">All Tasks</option>
-                    <option value="todo">To Do</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="done">Done</option>
-                  </select>
-                  
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {filteredTasks.length} tasks
-                  </span>
-                </div>
+            <button
+              onClick={() => setShowAddTask(true)}
+              className="btn-primary flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Add Task
+            </button>
+          </div>
 
-                <button
-                  onClick={() => setShowAddTask(true)}
-                  className="btn-primary flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Task
-                </button>
-              </div>
-
-              {/* Tasks Content */}
-              {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-pulse text-gray-500 dark:text-gray-400">Loading tasks...</div>
-                </div>
-              ) : viewMode === 'list' ? (
-                <div>
-                  {/* Group by source if not filtering by specific status and showing all categories */}
-                  {!['todo', 'in-progress', 'done'].includes(filterStatus) && selectedCategory === 'all' ? (
-                    <div className="space-y-8">
-                      {['local', 'github', 'trello'].map(source => {
-                        const sourceTasks = filteredTasks.filter(task => task.source === source);
-                        if (sourceTasks.length === 0) return null;
+          {/* Tasks Content */}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-pulse text-gray-500 dark:text-gray-400">Loading tasks...</div>
+            </div>
+          ) : viewMode === 'list' ? (
+            <div>
+              {/* Group by source if not filtering by specific status */}
+              {!['todo', 'in-progress', 'done'].includes(filterStatus) ? (
+                <div className="space-y-8">
+                  {['local', 'github', 'trello'].map(source => {
+                    const sourceTasks = filteredTasks.filter(task => task.source === source && (selectedCategory === 'all' || task.source === selectedCategory));
+                    if (sourceTasks.length === 0) return null;
+                    
+                    const isCollapsed = collapsedSources.has(source);
+                    
+                    return (
+                      <div key={source} className="space-y-4">
+                        <button
+                          onClick={() => toggleSourceCollapse(source)}
+                          className="flex items-center gap-3 w-full text-left hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded-lg transition-colors"
+                        >
+                          {isCollapsed ? (
+                            <ChevronRight className="w-4 h-4 text-gray-500" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4 text-gray-500" />
+                          )}
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white capitalize flex items-center gap-2">
+                            {source === 'github' && <Github className="w-5 h-5" />}
+                            {source === 'trello' && <Trello className="w-5 h-5" />}
+                            {source === 'local' && <MessageCircle className="w-5 h-5" />}
+                            {source} Tasks
+                          </h3>
+                          <span className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded-full text-sm">
+                            {sourceTasks.length}
+                          </span>
+                        </button>
                         
-                        const isCollapsed = collapsedSources.has(source);
-                        
-                        return (
-                          <div key={source} className="space-y-4">
-                            <div className="flex items-center gap-3">
-                              <button
-                                onClick={() => toggleSourceCollapse(source)}
-                                className="flex items-center gap-2 group"
-                              >
-                                {isCollapsed ? (
-                                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
-                                ) : (
-                                  <ChevronDown className="w-5 h-5 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
-                                )}
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white capitalize flex items-center gap-2">
-                                  {getCategoryIcon(source)}
-                                  {source} Tasks
-                                </h3>
-                              </button>
-                              <span className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded-full text-sm">
-                                {sourceTasks.length}
-                              </span>
-                            </div>
-                            
-                            <AnimatePresence>
-                              {!isCollapsed && (
-                                <motion.div
-                                  initial={{ opacity: 0, height: 0 }}
-                                  animate={{ opacity: 1, height: 'auto' }}
-                                  exit={{ opacity: 0, height: 0 }}
-                                  transition={{ duration: 0.2 }}
-                                  className="space-y-3"
-                                >
-                                  {sourceTasks.map(task => (
-                                    <TaskCard
-                                      key={task.id}
-                                      task={task}
-                                      onUpdate={updateTask}
-                                      onDelete={deleteTask}
-                                      onPushToGitHub={handlePushToGitHub}
-                                      onViewDetails={handleViewTaskDetails}
-                                    />
-                                  ))}
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {filteredTasks.length === 0 ? (
-                        <div className="text-center py-12">
-                          <p className="text-gray-500 dark:text-gray-400 mb-4">No tasks found</p>
-                          <button
-                            onClick={() => setShowAddTask(true)}
-                            className="btn-primary"
-                          >
-                            Create your first task
-                          </button>
-                        </div>
-                      ) : (
-                        filteredTasks.map(task => (
-                          <TaskCard
-                            key={task.id}
-                            task={task}
-                            onUpdate={updateTask}
-                            onDelete={deleteTask}
-                            onPushToGitHub={handlePushToGitHub}
-                            onViewDetails={handleViewTaskDetails}
-                          />
-                        ))
-                      )}
-                    </div>
-                  )}
+                        <AnimatePresence>
+                          {!isCollapsed && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              className="space-y-3 overflow-hidden"
+                            >
+                              {sourceTasks.map(task => (
+                                <TaskCard
+                                  key={task.id}
+                                  task={task}
+                                  onUpdate={updateTask}
+                                  onDelete={deleteTask}
+                                  onPushToGitHub={handlePushToGitHub}
+                                  onViewDetails={handleViewTaskDetails}
+                                />
+                              ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
-                <div>
+                <div className="space-y-4">
                   {filteredTasks.length === 0 ? (
                     <div className="text-center py-12">
                       <p className="text-gray-500 dark:text-gray-400 mb-4">No tasks found</p>
@@ -598,85 +549,77 @@ const Dashboard: React.FC = () => {
                       </button>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {(['todo', 'in-progress', 'done'] as const).map(status => (
-                        <div 
-                          key={status} 
-                          className={`space-y-4 min-h-[400px] p-4 rounded-lg transition-colors ${
-                            draggedTask ? 'bg-gray-50 dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600' : ''
-                          }`}
-                          onDragOver={handleDragOver}
-                          onDrop={(e) => handleDrop(e, status)}
-                        >
-                          <h2 className="font-semibold text-gray-900 dark:text-white capitalize flex items-center gap-2">
-                            {status.replace('-', ' ')}
-                            <span className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded-full text-xs">
-                              {tasksByStatus[status].length}
-                            </span>
-                          </h2>
-                          
-                          <div className="space-y-3">
-                            {tasksByStatus[status].map(task => (
-                              <div
-                                key={task.id}
-                                draggable
-                                onDragStart={(e) => handleDragStart(e, task.id)}
-                                onDragEnd={handleDragEnd}
-                                className={`transition-opacity ${draggedTask === task.id ? 'opacity-50' : ''}`}
-                              >
-                                <TaskCard
-                                  task={task}
-                                  onUpdate={updateTask}
-                                  onDelete={deleteTask}
-                                  onPushToGitHub={handlePushToGitHub}
-                                  onViewDetails={handleViewTaskDetails}
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    filteredTasks.map(task => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        onUpdate={updateTask}
+                        onDelete={deleteTask}
+                        onPushToGitHub={handlePushToGitHub}
+                        onViewDetails={handleViewTaskDetails}
+                      />
+                    ))
                   )}
                 </div>
               )}
             </div>
-          </div>
-        </main>
-      </div>
-
-      {/* Bottom Navigation - Mobile */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-30">
-        <div className="flex items-center justify-around py-2">
-          {sidebarCategories.map((category) => {
-            const Icon = category.icon;
-            const count = getCategoryCount(category.id);
-            const isActive = selectedCategory === category.id;
-            
-            return (
-              <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id as any)}
-                className={`flex flex-col items-center gap-1 px-3 py-2 min-w-0 flex-1 transition-colors ${
-                  isActive
-                    ? 'text-primary-600 dark:text-primary-400'
-                    : 'text-gray-600 dark:text-gray-400'
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="text-xs font-medium truncate">{category.name}</span>
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                  isActive
-                    ? 'bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-                }`}>
-                  {count}
-                </span>
-              </button>
-            );
-          })}
+          ) : (
+            <div>
+              {filteredTasks.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-500 dark:text-gray-400 mb-4">No tasks found</p>
+                  <button
+                    onClick={() => setShowAddTask(true)}
+                    className="btn-primary"
+                  >
+                    Create your first task
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {(['todo', 'in-progress', 'done'] as const).map(status => (
+                    <div 
+                      key={status} 
+                      className={`space-y-4 min-h-[400px] p-4 rounded-lg transition-colors ${
+                        draggedTask ? 'bg-gray-50 dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600' : ''
+                      }`}
+                      onDragOver={handleDragOver}
+                      onDrop={(e) => handleDrop(e, status)}
+                    >
+                      <h2 className="font-semibold text-gray-900 dark:text-white capitalize flex items-center gap-2">
+                        {status.replace('-', ' ')}
+                        <span className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded-full text-xs">
+                          {tasksByStatus[status].length}
+                        </span>
+                      </h2>
+                      
+                      <div className="space-y-3">
+                        {tasksByStatus[status].map(task => (
+                          <div
+                            key={task.id}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, task.id)}
+                            onDragEnd={handleDragEnd}
+                            className={`transition-opacity ${draggedTask === task.id ? 'opacity-50' : ''}`}
+                          >
+                            <TaskCard
+                              task={task}
+                              onUpdate={updateTask}
+                              onDelete={deleteTask}
+                              onPushToGitHub={handlePushToGitHub}
+                              onViewDetails={handleViewTaskDetails}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
-      </nav>
+      </main>
 
       {/* Add Task Modal */}
       <AnimatePresence>
