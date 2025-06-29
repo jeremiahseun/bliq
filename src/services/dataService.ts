@@ -23,6 +23,12 @@ export interface Integration {
   refreshToken?: string;
   expiresAt?: string;
   metadata: any;
+  connectedRepos?: Array<{
+    id: number;
+    name: string;
+    owner: string;
+    fullName: string;
+  }>;
   createdAt: string;
 }
 
@@ -51,9 +57,13 @@ class DataService {
     await dbService.addIntegration(integration);
   }
 
-  async syncWithGitHub(userId: string, token: string): Promise<void> {
+  async updateIntegration(id: string, updates: Partial<Integration>): Promise<void> {
+    await dbService.updateIntegration(id, updates);
+  }
+
+  async getGitHubRepos(token: string): Promise<any[]> {
     try {
-      const response = await fetch('https://api.github.com/issues?filter=assigned&state=open', {
+      const response = await fetch('https://api.github.com/user/repos?sort=updated&per_page=100', {
         headers: {
           'Authorization': `token ${token}`,
           'Accept': 'application/vnd.github.v3+json',
@@ -61,32 +71,61 @@ class DataService {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch GitHub issues');
+        throw new Error('Failed to fetch GitHub repositories');
       }
 
-      const issues = await response.json();
-      
-      for (const issue of issues) {
-        const existingTasks = await this.getTasks(userId);
-        const existingTask = existingTasks.find(t => t.sourceId === issue.id.toString() && t.source === 'github');
+      return await response.json();
+    } catch (error) {
+      console.error('GitHub repos fetch error:', error);
+      throw error;
+    }
+  }
+
+  async syncWithGitHub(userId: string, token: string): Promise<void> {
+    try {
+      const integration = await this.getIntegration(userId, 'github');
+      if (!integration?.connectedRepos || integration.connectedRepos.length === 0) {
+        return; // No repos selected for sync
+      }
+
+      const existingTasks = await this.getTasks(userId);
+
+      for (const repo of integration.connectedRepos) {
+        const response = await fetch(`https://api.github.com/repos/${repo.owner}/${repo.name}/issues?state=open`, {
+          headers: {
+            'Authorization': `token ${token}`,
+            'Accept': 'application/vnd.github.v3+json',
+          },
+        });
+
+        if (!response.ok) {
+          console.warn(`Failed to fetch issues for ${repo.fullName}`);
+          continue;
+        }
+
+        const issues = await response.json();
         
-        if (!existingTask) {
-          const task: Task = {
-            id: crypto.randomUUID(),
-            userId,
-            title: issue.title,
-            description: issue.body || '',
-            status: 'todo',
-            priority: issue.labels.some((l: any) => l.name.includes('high')) ? 'high' : 'medium',
-            source: 'github',
-            sourceId: issue.id.toString(),
-            isMarkdown: true,
-            tags: issue.labels.map((l: any) => l.name),
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
+        for (const issue of issues) {
+          const existingTask = existingTasks.find(t => t.sourceId === issue.id.toString() && t.source === 'github');
           
-          await this.addTask(task);
+          if (!existingTask) {
+            const task: Task = {
+              id: crypto.randomUUID(),
+              userId,
+              title: issue.title,
+              description: issue.body || '',
+              status: 'todo',
+              priority: issue.labels.some((l: any) => l.name.includes('high')) ? 'high' : 'medium',
+              source: 'github',
+              sourceId: issue.id.toString(),
+              isMarkdown: true,
+              tags: issue.labels.map((l: any) => l.name),
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+            
+            await this.addTask(task);
+          }
         }
       }
     } catch (error) {
@@ -98,7 +137,7 @@ class DataService {
   async syncWithTrello(userId: string, token: string): Promise<void> {
     try {
       // Get user's boards
-      const boardsResponse = await fetch(`https://api.trello.com/1/members/me/boards?key=${process.env.TRELLO_API_KEY}&token=${token}`);
+      const boardsResponse = await fetch(`https://api.trello.com/1/members/me/boards?key=${import.meta.env.VITE_TRELLO_API_KEY}&token=${token}`);
       
       if (!boardsResponse.ok) {
         throw new Error('Failed to fetch Trello boards');
@@ -108,7 +147,7 @@ class DataService {
       
       for (const board of boards) {
         // Get cards from board
-        const cardsResponse = await fetch(`https://api.trello.com/1/boards/${board.id}/cards?key=${process.env.TRELLO_API_KEY}&token=${token}`);
+        const cardsResponse = await fetch(`https://api.trello.com/1/boards/${board.id}/cards?key=${import.meta.env.VITE_TRELLO_API_KEY}&token=${token}`);
         
         if (!cardsResponse.ok) continue;
         

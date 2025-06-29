@@ -38,6 +38,12 @@ interface BliqDB extends DBSchema {
       refreshToken?: string;
       expiresAt?: string;
       metadata: any;
+      connectedRepos?: Array<{
+        id: number;
+        name: string;
+        owner: string;
+        fullName: string;
+      }>;
       createdAt: string;
     };
   };

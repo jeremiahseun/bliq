@@ -4,9 +4,11 @@ import { Plus, Search, Filter, List, Grid3X3, Settings, LogOut, Github, Trello, 
 import Logo from '../components/Logo';
 import TaskCard from '../components/TaskCard';
 import IntegrationModal from '../components/IntegrationModal';
+import GitHubRepoSelectionModal from '../components/GitHubRepoSelectionModal';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useData } from '../context/DataContext';
+import { dataService } from '../services/dataService';
 
 const Dashboard: React.FC = () => {
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
@@ -15,7 +17,16 @@ const Dashboard: React.FC = () => {
   const [showAddTask, setShowAddTask] = useState(false);
   const [showIntegration, setShowIntegration] = useState<'github' | 'trello' | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showGitHubRepos, setShowGitHubRepos] = useState(false);
   const [isSync, setIsSync] = useState(false);
+  const [githubToken, setGithubToken] = useState('');
+  const [integrationStatus, setIntegrationStatus] = useState<{
+    github: { connected: boolean; repoCount?: number };
+    trello: { connected: boolean };
+  }>({
+    github: { connected: false },
+    trello: { connected: false },
+  });
   
   // New task form
   const [newTask, setNewTask] = useState({
@@ -28,6 +39,12 @@ const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { tasks, addTask, updateTask, deleteTask, syncTasks, isLoading, isOnline } = useData();
+
+  useEffect(() => {
+    if (user && showSettings) {
+      loadIntegrationStatus();
+    }
+  }, [user, showSettings]);
 
   const filteredTasks = tasks.filter(task => {
     const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -65,6 +82,41 @@ const Dashboard: React.FC = () => {
     console.log('Push to GitHub:', task);
     // For demo, just update to github source
     await updateTask(task.id, { source: 'github' });
+  };
+
+  const loadIntegrationStatus = async () => {
+    if (!user) return;
+
+    try {
+      const githubIntegration = await dataService.getIntegration(user.id, 'github');
+      const trelloIntegration = await dataService.getIntegration(user.id, 'trello');
+
+      setIntegrationStatus({
+        github: {
+          connected: !!githubIntegration,
+          repoCount: githubIntegration?.connectedRepos?.length || 0,
+        },
+        trello: {
+          connected: !!trelloIntegration,
+        },
+      });
+    } catch (error) {
+      console.error('Error loading integration status:', error);
+    }
+  };
+
+  const handleGitHubIntegration = async () => {
+    if (!user) return;
+
+    const githubIntegration = await dataService.getIntegration(user.id, 'github');
+    if (githubIntegration) {
+      setGithubToken(githubIntegration.token);
+      setShowGitHubRepos(true);
+      setShowSettings(false);
+    } else {
+      setShowIntegration('github');
+      setShowSettings(false);
+    }
   };
 
   const tasksByStatus = {
@@ -193,18 +245,52 @@ const Dashboard: React.FC = () => {
             </div>
             <div className="p-2">
               <button
-                onClick={() => setShowIntegration('github')}
+                onClick={handleGitHubIntegration}
                 className="flex items-center gap-3 w-full px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
                 <Github className="w-5 h-5" />
-                <span>Connect GitHub</span>
+                <div className="flex-1">
+                  <span>
+                    {integrationStatus.github.connected ? 'Manage GitHub' : 'Connect GitHub'}
+                  </span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      integrationStatus.github.connected 
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                        : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                    }`}>
+                      {integrationStatus.github.connected ? 'Connected' : 'Not Connected'}
+                    </span>
+                    {integrationStatus.github.connected && integrationStatus.github.repoCount! > 0 && (
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {integrationStatus.github.repoCount} repos
+                      </span>
+                    )}
+                  </div>
+                </div>
               </button>
               <button
-                onClick={() => setShowIntegration('trello')}
+                onClick={() => {
+                  setShowIntegration('trello');
+                  setShowSettings(false);
+                }}
                 className="flex items-center gap-3 w-full px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
                 <Trello className="w-5 h-5" />
-                <span>Connect Trello</span>
+                <div className="flex-1">
+                  <span>
+                    {integrationStatus.trello.connected ? 'Manage Trello' : 'Connect Trello'}
+                  </span>
+                  <div className="mt-1">
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      integrationStatus.trello.connected 
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                        : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                    }`}>
+                      {integrationStatus.trello.connected ? 'Connected' : 'Not Connected'}
+                    </span>
+                  </div>
+                </div>
               </button>
             </div>
           </motion.div>
@@ -393,12 +479,25 @@ const Dashboard: React.FC = () => {
           isOpen={true}
           onClose={() => {
             setShowIntegration(null);
-            setShowSettings(false);
           }}
           service={showIntegration}
           onSuccess={() => {
             console.log(`${showIntegration} integration successful`);
-            setShowSettings(false);
+            loadIntegrationStatus();
+          }}
+        />
+      )}
+
+      {/* GitHub Repository Selection Modal */}
+      {showGitHubRepos && user && githubToken && (
+        <GitHubRepoSelectionModal
+          isOpen={true}
+          onClose={() => setShowGitHubRepos(false)}
+          userId={user.id}
+          githubToken={githubToken}
+          onSuccess={() => {
+            console.log('GitHub repositories updated');
+            loadIntegrationStatus();
           }}
         />
       )}
